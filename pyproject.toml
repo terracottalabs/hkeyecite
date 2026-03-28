@@ -1,0 +1,43 @@
+[build-system]
+requires = ["setuptools>=61.0"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "hkeyecite"
+version = "0.1.0"
+description = "A library for extracting and parsing legal citations from Hong Kong court judgments"
+readme = "README.md"
+license = {file = "LICENSE.txt"}
+requires-python = ">=3.10"
+authors = [
+    { name = "Terracotta" },
+]
+keywords = ["legal", "citations", "hong kong", "law", "nlp", "courts"]
+classifiers = [
+    "Development Status :: 3 - Alpha",
+    "Intended Audience :: Developers",
+    "Intended Audience :: Legal Industry",
+    "License :: OSI Approved :: BSD License",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+    "Topic :: Text Processing",
+    "Typing :: Typed",
+]
+
+[project.urls]
+Homepage = "https://github.com/terracottalabs/hkeyecite"
+Repository = "https://github.com/terracottalabs/hkeyecite"
+Issues = "https://github.com/terracottalabs/hkeyecite/issues"
+
+[tool.setuptools]
+package-dir = {"hkeyecite" = "src"}
+packages = ["hkeyecite"]
+
+[tool.setuptools.package-data]
+hkeyecite = ["py.typed"]
+
+[tool.setuptools.exclude-package-data]
+"*" = ["demo.gif", "demo.tape"]
