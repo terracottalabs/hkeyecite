@@ -10,6 +10,8 @@ Give it any block of text containing Hong Kong legal references, and it will ide
 
 It also extracts case names (e.g. "HKSAR v Harjani") and pinpoint references (e.g. "at [45]") when present.
 
+![Demo](demo.gif)
+
 ## Installation
 
 ```bash
@@ -17,10 +19,6 @@ pip install hkeyecite
 ```
 
 Requires Python 3.10 or later.
-
-## Example
-
-![Demo](demo.gif)
 
 ## What it recognises
 
