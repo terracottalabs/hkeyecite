@@ -10,7 +10,7 @@ Give it any block of text containing Hong Kong legal references, and it will ide
 
 It also extracts case names (e.g. "HKSAR v Harjani") and pinpoint references (e.g. "at [45]") when present.
 
-![Demo](demo.gif)
+![Demo](https://raw.githubusercontent.com/terracottalabs/hkeyecite/main/demo.gif)
 
 ## Installation
 

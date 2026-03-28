@@ -20,7 +20,7 @@ from hkeyecite.models import (
 from hkeyecite.courts import HK_COURTS
 from hkeyecite.reporters import HK_REPORTERS
 
-__version__ = "0.1.0"
+__version__ = "0.1.1"
 __all__ = [
     "get_citations",
     "HKCitation",
