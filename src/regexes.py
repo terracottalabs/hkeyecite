@@ -192,7 +192,7 @@ CITATION_INDICATORS = [
     " of 19", " of 20",  # Action numbers alternate (PREFIX No. X of YYYY)
     # Court codes (for neutral citations)
     "HKCFA", "HKCA", "HKCFI", "HKDC", "HKFC", "HKLT", "HKCT",
-    "HKLdT", "HKLaT", "HKMagC", "HKFamC", "HKLBT", "HKSCT", "HKOAT", "HKCC", "HKMC",
+    "HKLdT", "HKLaT", "HKMagC", "HKFamC", "HKLBT", "HKSCT", "HKOAT", "HKCC", "HKCrC", "HKMC",
     "CFA", "CA", "CFI",  # Alternate codes
     # Reporter codes
     "HKLRD", "HKC", "HKCFAR", "HKPLR",
