@@ -171,6 +171,15 @@ HKCC = Court(
     case_prefixes=("CCDI",),
 )
 
+# Coroner's Court (alternate neutral citation code)
+HKCrC = Court(
+    code="HKCrC",
+    name="Coroner's Court",
+    name_zh="死因裁判法庭",
+    level=45,
+    case_prefixes=(),
+)
+
 # Magistrates' Courts (Criminal)
 HKMC = Court(
     code="HKMC",
@@ -239,6 +248,7 @@ HK_COURTS = {
     "HKCT": HKCT,
     "HKOAT": HKOAT,
     "HKCC": HKCC,
+    "HKCrC": HKCrC,
     "HKMC": HKMC,
     "HKMagC": HKMagC,
     # Alternate codes (older format sometimes seen)
