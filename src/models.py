@@ -131,10 +131,15 @@ class HKActionNumber(HKCitation):
         prefix: The case type prefix (e.g., "FACV", "HCAL")
         number: The case number
         year: The year filed
+        nearby_date: Optional nearby date in ISO format (YYYY-MM-DD).
+            This is the closest date found near the action number in the source text.
+            It may represent a filing date, hearing date, or other court event.
+            US-style date formats are not supported.
     """
     prefix: str = ""
     number: int = 0
     year: int = 0
+    nearby_date: Optional[str] = None
 
     def normalized(self) -> str:
         """Return normalized action number string."""

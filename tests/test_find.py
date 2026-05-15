@@ -5,11 +5,6 @@ Test cases are derived from real Hong Kong judgments.
 """
 
 import unittest
-import sys
-import os
-
-# Add parent directory to path for imports
-sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
 
 from hkeyecite import get_citations
 from hkeyecite.models import (
@@ -145,6 +140,7 @@ class TestActionNumbers(unittest.TestCase):
         self.assertEqual(c.number, 1)
         self.assertEqual(c.year, 2018)
         self.assertEqual(c.court, "HKCFA")
+        self.assertIsNone(c.nearby_date)
 
     def test_hcal_action_number(self):
         """Test High Court Administrative Law action number."""
@@ -167,6 +163,110 @@ class TestActionNumbers(unittest.TestCase):
         c = citations[0]
         self.assertEqual(c.prefix, "CACC")
         self.assertEqual(c.court, "HKCA")
+
+    def test_action_number_with_slash_date_on_right(self):
+        """Test action number with nearby DD/MM/YYYY date."""
+        text = "FACV 1/2018, 03/04/2018"
+        citations = extract_action_numbers(text)
+
+        self.assertEqual(len(citations), 1)
+        self.assertEqual(citations[0].nearby_date, "2018-04-03")
+
+    def test_action_number_with_month_name_date_on_left(self):
+        """Test action number with nearby DD Month YYYY date."""
+        text = "on 3 April 2018, FACV 1/2018 was filed"
+        citations = extract_action_numbers(text)
+
+        self.assertEqual(len(citations), 1)
+        self.assertEqual(citations[0].nearby_date, "2018-04-03")
+
+    def test_action_number_ignores_date_outside_window(self):
+        """Test date outside 35-character search window is ignored."""
+        text = "3 April 2018 happened long before the eventual filing of FACV 1/2018"
+        citations = extract_action_numbers(text)
+
+        self.assertEqual(len(citations), 1)
+        self.assertIsNone(citations[0].nearby_date)
+
+    def test_action_number_with_dotted_date(self):
+        """Test action number with nearby DD.MM.YYYY date."""
+        text = "FACV 1/2018, 03.04.2018"
+        citations = extract_action_numbers(text)
+
+        self.assertEqual(len(citations), 1)
+        self.assertEqual(citations[0].nearby_date, "2018-04-03")
+
+    def test_action_number_with_hyphenated_date(self):
+        """Test action number with nearby DD-MM-YYYY date."""
+        text = "FACV 1/2018, 03-04-2018"
+        citations = extract_action_numbers(text)
+
+        self.assertEqual(len(citations), 1)
+        self.assertEqual(citations[0].nearby_date, "2018-04-03")
+
+    def test_action_number_with_ordinal_date(self):
+        """Test action number with nearby date using ordinal suffix."""
+        text = "on 3rd April 2018, FACV 1/2018 was filed"
+        citations = extract_action_numbers(text)
+
+        self.assertEqual(len(citations), 1)
+        self.assertEqual(citations[0].nearby_date, "2018-04-03")
+
+    def test_action_number_with_ordinal_of_date(self):
+        """Test action number with nearby date using ordinal and 'of'."""
+        text = "filed on 3rd of April 2018: FACV 1/2018"
+        citations = extract_action_numbers(text)
+
+        self.assertEqual(len(citations), 1)
+        self.assertEqual(citations[0].nearby_date, "2018-04-03")
+
+    def test_action_number_with_abbreviated_month(self):
+        """Test action number with nearby date using abbreviated month."""
+        text = "FACV 1/2018 on 3 Apr 2018"
+        citations = extract_action_numbers(text)
+
+        self.assertEqual(len(citations), 1)
+        self.assertEqual(citations[0].nearby_date, "2018-04-03")
+
+    def test_action_number_with_abbreviated_month_period(self):
+        """Test action number with nearby date using abbreviated month with period."""
+        text = "FACV 1/2018 on 3 Apr. 2018"
+        citations = extract_action_numbers(text)
+
+        self.assertEqual(len(citations), 1)
+        self.assertEqual(citations[0].nearby_date, "2018-04-03")
+
+    def test_action_number_with_mixed_case_month(self):
+        """Test case-insensitive month matching."""
+        text = "FACV 1/2018, 3 APRIL 2018"
+        citations = extract_action_numbers(text)
+
+        self.assertEqual(len(citations), 1)
+        self.assertEqual(citations[0].nearby_date, "2018-04-03")
+
+    def test_action_number_with_comma_after_month(self):
+        """Test action number with nearby date using comma after month."""
+        text = "FACV 1/2018 on 3 April, 2018"
+        citations = extract_action_numbers(text)
+
+        self.assertEqual(len(citations), 1)
+        self.assertEqual(citations[0].nearby_date, "2018-04-03")
+
+    def test_action_number_rejects_invalid_date(self):
+        """Test that impossible dates like 31 Feb are rejected."""
+        text = "FACV 1/2018, 31/02/2018"
+        citations = extract_action_numbers(text)
+
+        self.assertEqual(len(citations), 1)
+        self.assertIsNone(citations[0].nearby_date)
+
+    def test_action_number_prefers_closer_date(self):
+        """Test the closest date wins when dates appear on both sides."""
+        text = "On 01/01/2020 things happened, FACV 1/2018, 02/02/2020"
+        citations = extract_action_numbers(text)
+
+        self.assertEqual(len(citations), 1)
+        self.assertEqual(citations[0].nearby_date, "2020-02-02")
 
 
 class TestComplexExtractions(unittest.TestCase):

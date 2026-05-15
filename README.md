@@ -64,6 +64,13 @@ Case filing references: `Prefix Number/Year`
 
 Common prefixes include FACV, FACC (Court of Final Appeal), CACV, CACC (Court of Appeal), HCA, HCAL, HCCC (Court of First Instance), DCCJ, DCCC (District Court), and many more.
 
+When an action number appears near a filing or hearing date, the nearby date is captured if it is within 35 characters on either side of the action number. Supported formats include:
+
+- `DD/MM/YYYY`, `DD.MM.YYYY`, `DD-MM-YYYY` (using a consistent separator)
+- `DD Month YYYY` (e.g. `3 April 2018`) including ordinal suffixes (`3rd April 2018`), the optional `of` connector (`3rd of April 2018`), abbreviated month names (`3 Apr 2018`), and trailing periods on abbreviations (`3 Apr. 2018`)
+
+Extracted dates are normalised to ISO format (`YYYY-MM-DD`). US-style date formats (e.g. `MM/DD/YYYY` or `April 3, 2018`) are not supported — this library targets Hong Kong jurisdiction only.
+
 ### Metadata
 
 When a citation is preceded by a case name like `HKSAR v Harjani` or `Re Something`, it is automatically extracted. Pinpoint references that follow a citation (`at [45]`, `at para 10`, `at p. 5`) are also captured.
@@ -86,6 +93,8 @@ Each citation has:
 - `.case_name` -- the case name, if one appears before the citation
 - `.pin_cite` -- the pinpoint reference (e.g. paragraph number), if one follows
 - `.start`, `.end` -- character positions in the source text
+
+Action number citations also have `.nearby_date`, which is the nearest supported date found within 35 characters before or after the action number, normalised as `YYYY-MM-DD`. If no nearby date is found, `.nearby_date` is `None`.
 
 Pass `include_action_numbers=False` to skip action number extraction.
 

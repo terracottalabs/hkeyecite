@@ -6,6 +6,7 @@ This module provides the main function for extracting citations from text.
 
 import re
 import unicodedata
+from datetime import date
 from typing import List, Optional
 
 from hkeyecite.models import (
@@ -28,6 +29,54 @@ from hkeyecite.regexes import (
 
 
 _INVISIBLE_RE = re.compile(r'[\u200b-\u200f\u2028-\u202f\u2060-\u2069\u00ad\ufeff]')
+_ACTION_DATE_WINDOW = 35
+
+_MONTH_FULL_NAMES = (
+    "January|February|March|April|May|June|July|August|September|October|November|December"
+)
+_MONTH_ABBR_NAMES = "Jan|Feb|Mar|Apr|Jun|Jul|Aug|Sept|Sep|Oct|Nov|Dec"
+_MONTH_NAME_PATTERN = rf"(?:{_MONTH_FULL_NAMES}|{_MONTH_ABBR_NAMES})"
+
+_MONTH_NAMES = {
+    "january": 1, "jan": 1,
+    "february": 2, "feb": 2,
+    "march": 3, "mar": 3,
+    "april": 4, "apr": 4,
+    "may": 5,
+    "june": 6, "jun": 6,
+    "july": 7, "jul": 7,
+    "august": 8, "aug": 8,
+    "september": 9, "sept": 9, "sep": 9,
+    "october": 10, "oct": 10,
+    "november": 11, "nov": 11,
+    "december": 12, "dec": 12,
+}
+
+_ACTION_DATE_REGEX = re.compile(
+    rf"""
+    (?<!\d)
+    (?:
+        # Numeric: DD/MM/YYYY, DD.MM.YYYY, DD-MM-YYYY (consistent separator)
+        (?P<num_day>\d{{1,2}})
+        (?P<sep>[-/.])
+        (?P<num_month>\d{{1,2}})
+        (?P=sep)
+        (?P<num_year>\d{{4}})
+        |
+        # Textual: 3 April 2018, 3rd April 2018, 3rd of April 2018, 3 Apr. 2018
+        (?P<text_day>\d{{1,2}})
+        (?:st|nd|rd|th)?
+        \s+
+        (?:of\s+)?
+        (?P<text_month>{_MONTH_NAME_PATTERN})
+        \.?,?
+        \s+
+        (?P<text_year>\d{{4}})
+    )
+    (?!\d)
+    """,
+    re.IGNORECASE | re.VERBOSE,
+)
 
 
 def _normalize_text(text: str) -> str:
@@ -136,9 +185,58 @@ def _token_to_citation(token: Token, text: str) -> Optional[HKCitation]:
             prefix=token.groups["prefix"],
             number=int(token.groups["number"]),
             year=int(token.groups["year"]),
+            nearby_date=_extract_nearby_action_date(text, token.start, token.end),
         )
 
     return None
+
+
+def _extract_nearby_action_date(text: str, citation_start: int, citation_end: int) -> Optional[str]:
+    """Find the closest valid date within 35 characters of an action number."""
+    search_start = max(0, citation_start - _ACTION_DATE_WINDOW)
+    search_end = min(len(text), citation_end + _ACTION_DATE_WINDOW)
+    left_text = text[search_start:citation_start]
+    right_text = text[citation_end:search_end]
+
+    best_date = None
+    best_distance = None
+    candidates = [
+        (match, len(left_text) - match.end()) for match in _ACTION_DATE_REGEX.finditer(left_text)
+    ] + [
+        (match, match.start()) for match in _ACTION_DATE_REGEX.finditer(right_text)
+    ]
+
+    for match, distance in candidates:
+        normalized = _normalize_action_date_match(match)
+        if normalized is not None and (best_distance is None or distance < best_distance):
+            best_date = normalized
+            best_distance = distance
+
+    return best_date
+
+
+def _normalize_action_date_match(match: re.Match) -> Optional[str]:
+    """
+    Normalize supported nearby action dates to YYYY-MM-DD.
+    Supports DD/MM/YYYY, DD.MM.YYYY, DD-MM-YYYY, and DD Month YYYY variants.
+    US-style formats (e.g. MM/DD/YYYY) are not supported.
+    """
+    if match.group("num_day"):
+        day = int(match.group("num_day"))
+        month = int(match.group("num_month"))
+        year = int(match.group("num_year"))
+    else:
+        day = int(match.group("text_day"))
+        month_str = match.group("text_month").lower()
+        month = _MONTH_NAMES.get(month_str)
+        if month is None:
+            return None
+        year = int(match.group("text_year"))
+
+    try:
+        return date(year, month, day).isoformat()
+    except ValueError:
+        return None
 
 
 def _extract_case_name(text: str, citation_start: int) -> Optional[str]:
