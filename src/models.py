@@ -7,7 +7,54 @@ of Hong Kong legal citations.
 
 from abc import ABC, abstractmethod
 from dataclasses import dataclass, field
-from typing import Optional, Tuple, Dict, Any
+import re
+from typing import List, Optional, Tuple, Dict, Any
+
+
+_RANGE_SEPARATORS = re.compile(r"\s*(?:[-–]|to)\s*")
+_MAX_RANGE_SIZE = 10000
+
+
+def expand_pin_cite(value: str) -> List[int]:
+    """Expand a pin cite string into a sorted, deduplicated list of integers.
+
+    Examples:
+        "23"          → [23]
+        "23-36"       → [23, 24, ..., 36]
+        "10 to 15"    → [10, 11, ..., 15]
+        "17-22, 36"   → [17, 18, ..., 22, 36]
+    """
+    if not value or not value.strip():
+        return []
+
+    result: List[int] = []
+    for part in value.split(","):
+        part = part.strip()
+        if not part:
+            continue
+
+        match = _RANGE_SEPARATORS.search(part)
+        if match:
+            start_str = part[:match.start()]
+            end_str = part[match.end():]
+            try:
+                start = int(start_str)
+                end = int(end_str)
+            except ValueError:
+                continue
+            if end < start:
+                start, end = end, start
+            if end - start > _MAX_RANGE_SIZE:
+                result.extend([start, end])
+            else:
+                result.extend(range(start, end + 1))
+        else:
+            try:
+                result.append(int(part))
+            except ValueError:
+                continue
+
+    return sorted(set(result))
 
 
 @dataclass
@@ -43,6 +90,15 @@ class HKCitation(ABC):
     def pin_cite(self) -> Optional[str]:
         """Pinpoint reference, if extracted."""
         return self.metadata.get("pin_cite")
+
+    @property
+    def pin_cite_values(self) -> Optional[List[int]]:
+        """Pinpoint reference expanded to a sorted list of integers, or None."""
+        raw = self.pin_cite
+        if raw is None:
+            return None
+        values = expand_pin_cite(raw)
+        return values if values else None
 
     @abstractmethod
     def normalized(self) -> str:

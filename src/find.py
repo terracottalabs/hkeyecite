@@ -31,6 +31,16 @@ from hkeyecite.regexes import (
 _INVISIBLE_RE = re.compile(r'[\u200b-\u200f\u2028-\u202f\u2060-\u2069\u00ad\ufeff]')
 _ACTION_DATE_WINDOW = 35
 
+# Strict continuation pattern for comma/and-separated pin cite lists.
+# Only matches pure numbers or ranges; any non-numeric token breaks the scan.
+_PIN_CITE_LIST_CONTINUATION = re.compile(
+    r"""
+    (?:\s*,\s*\d+(?:(?:[\u2013-]|(?:\s+to\s+))\d+)?)*   # zero or more ", N" or ", N-M"
+    (?:\s*,?\s+and\s+\d+(?:(?:[\u2013-]|(?:\s+to\s+))\d+)?)?  # optional final "and N" or ", and N"
+    """,
+    re.VERBOSE,
+)
+
 _MONTH_FULL_NAMES = (
     "January|February|March|April|May|June|July|August|September|October|November|December"
 )
@@ -126,7 +136,7 @@ def get_citations(
     tokens = tokenizer.tokenize(text)
     citations: List[HKCitation] = []
 
-    for token in tokens:
+    for i, token in enumerate(tokens):
         citation = _token_to_citation(token, text)
         if citation is None:
             continue
@@ -142,7 +152,8 @@ def get_citations(
                 citation.metadata["case_name"] = case_name
 
         # Try to extract pin cite that follows the citation
-        pin_cite = _extract_following_pin_cite(text, token.end)
+        next_start = tokens[i + 1].start if i + 1 < len(tokens) else None
+        pin_cite = _extract_following_pin_cite(text, token.end, next_start)
         if pin_cite:
             citation.metadata["pin_cite"] = pin_cite
 
@@ -266,22 +277,66 @@ def _extract_case_name(text: str, citation_start: int) -> Optional[str]:
     return None
 
 
-def _extract_following_pin_cite(text: str, citation_end: int) -> Optional[str]:
+def _truncate_at_sentence_boundary(text: str) -> str:
+    """Return text truncated at the first sentence or clause boundary.
+
+    Periods in pin-cite abbreviations (p., pp., para., paras.) are
+    ignored as boundaries. Semicolons are always treated as boundaries.
+    """
+    abbreviations = ("p.", "pp.", "para.", "paras.", "paragraph.", "paragraphs.")
+    for i, char in enumerate(text):
+        if char in ";?!":
+            return text[:i]
+        if char == ".":
+            prefix = text[max(0, i - 12) : i + 1].lower()
+            if any(prefix.endswith(a) for a in abbreviations):
+                continue
+            return text[:i]
+    return text
+
+
+def _extract_following_pin_cite(
+    text: str, citation_end: int, next_citation_start: Optional[int] = None
+) -> Optional[str]:
     """
     Extract pin cite that follows a citation.
 
-    Looks for patterns like "at [23]" or "at §§45-46" after the citation.
+    Looks for patterns like "[23]", "§§45-46", "para 10", or "p 10"
+    in the text immediately following the citation, bounded by the
+    next citation (if any) and sentence boundaries.
     """
-    # Look at text after the citation (up to 50 chars)
-    following_text = text[citation_end:citation_end + 50]
+    max_window = 50
+    if next_citation_start is not None:
+        max_window = min(max_window, next_citation_start - citation_end)
+    if max_window <= 0:
+        return None
 
-    # Check for pin cite immediately following
-    match = PIN_CITE_REGEX.match(following_text.lstrip())
-    if match:
-        # Get the actual pin cite value from the matched groups
-        for key in ["para_bracket", "para_section", "para_word", "page_ref"]:
-            if match.group(key):
-                return match.group(key)
+    following_text = text[citation_end : citation_end + max_window]
+    following_text = _truncate_at_sentence_boundary(following_text)
+    if not following_text.strip():
+        return None
+
+    matches = list(PIN_CITE_REGEX.finditer(following_text))
+    if not matches:
+        return None
+
+    # Prefer explicit pin forms over bare page/letter references when both occur.
+    # Bracketed numbers are weakest — they overlap heavily with years and other citation parts.
+    for key in ["para_section", "para_word", "page_ref", "para_bracket"]:
+        for match in matches:
+            value = match.group(key)
+            if value:
+                # Reject 4-digit bracketed numbers — almost always a year
+                if key == "para_bracket" and re.fullmatch(r"\d{4}", value):
+                    continue
+                # Look for comma/and-separated continuations (e.g., "paras. 12 and 13")
+                tail = following_text[match.end():]
+                cont_match = _PIN_CITE_LIST_CONTINUATION.match(tail)
+                if cont_match and cont_match.group(0):
+                    value = value + cont_match.group(0)
+                    # Normalize "and" conjunctions to comma-separated for expand_pin_cite
+                    value = re.sub(r"\s*,?\s+and\s+", ", ", value)
+                return value
 
     return None
 

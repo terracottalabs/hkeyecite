@@ -8,7 +8,7 @@ Give it any block of text containing Hong Kong legal references, and it will ide
 - **Law report citations** -- e.g. `(2019) 22 HKCFAR 446`
 - **Action numbers** -- e.g. `HCAL 1756/2020`
 
-It also extracts case names (e.g. "HKSAR v Harjani") and pinpoint references (e.g. "at [45]") when present.
+It also extracts case names (e.g. "HKSAR v Harjani") and pinpoint references (e.g. "at [45]", "§ 13", or "paras. 12 and 13") when present.
 
 ![Demo](https://raw.githubusercontent.com/terracottalabs/hkeyecite/main/demo.gif)
 
@@ -73,7 +73,16 @@ Extracted dates are normalised to ISO format (`YYYY-MM-DD`). US-style date forma
 
 ### Metadata
 
-When a citation is preceded by a case name like `HKSAR v Harjani` or `Re Something`, it is automatically extracted. Pinpoint references that follow a citation (`at [45]`, `at para 10`, `at p. 5`) are also captured.
+When a citation is preceded by a case name like `HKSAR v Harjani` or `Re Something`, it is automatically extracted. Pinpoint references that follow a citation are also captured.
+
+Supported pinpoint reference forms include:
+
+- Bracketed paragraph references: `at [45]`, `[23-36]`, `[14(2)]`
+- Section-symbol paragraph references: `§13`, `§ 13`, `§§22-23`
+- Paragraph labels: `para 10`, `paras. 12 and 13`, `paragraphs. 10 to 15`
+- Page labels: `p 10`, `p. 10`, `pp. 10-15`
+
+For bracketed subparagraph references such as `[14(2)]`, the paragraph number is retained as `14` and the subparagraph suffix is discarded.
 
 ## API
 
@@ -92,11 +101,24 @@ Each citation has:
 - `.normalized()` -- a standardised form of the citation
 - `.case_name` -- the case name, if one appears before the citation
 - `.pin_cite` -- the pinpoint reference (e.g. paragraph number), if one follows
+- `.pin_cite_values` -- the pinpoint reference expanded to sorted integer values, if possible
 - `.start`, `.end` -- character positions in the source text
 
 Action number citations also have `.nearby_date`, which is the nearest supported date found within 35 characters before or after the action number, normalised as `YYYY-MM-DD`. If no nearby date is found, `.nearby_date` is `None`.
 
 Pass `include_action_numbers=False` to skip action number extraction.
+
+```python
+from hkeyecite import get_citations
+
+citation = get_citations("[2024] HKCFA 1 paras. 10-12 and 15")[0]
+
+citation.pin_cite
+# "10-12, 15"
+
+citation.pin_cite_values
+# [10, 11, 12, 15]
+```
 
 ### Convenience functions
 

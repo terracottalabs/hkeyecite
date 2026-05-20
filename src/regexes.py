@@ -123,20 +123,21 @@ ACTION_NUMBER_ALT_REGEX = re.compile(
 
 
 # =============================================================================
-# Pin Cites: at [23], at §§23-36, at para 10
+# Pin Cites: [23], §§23-36, para 10, p 10, para 10 to 15
 # =============================================================================
 
+_PIN_CITE_NUMBER = r"\d+(?:(?:[–-]|(?:\s+to\s+))\d+)?"
+
 PIN_CITE_REGEX = re.compile(
-    r"""
-    at\s+                                  # "at "
+    rf"""
     (?:
-        \[(?P<para_bracket>\d+(?:[–-]\d+)?)\]    # [23] or [23-36]
+        \[(?P<para_bracket>{_PIN_CITE_NUMBER})(?:\([^)]+\))?\]    # [23], [23-36], or [23(2)]
         |
-        §§?(?P<para_section>\d+(?:[–-]\d+)?)    # §23 or §§23-36
+        §§?\s*(?P<para_section>{_PIN_CITE_NUMBER})    # §23, § 23, or §§23-36
         |
-        (?:para(?:graph)?s?\.?\s*)(?P<para_word>\d+(?:[–-]\d+)?)  # para 10, paras 10-15
+        (?:para(?:graph)?s?\.?\s*)(?P<para_word>{_PIN_CITE_NUMBER})  # para 10, paras 10-15
         |
-        (?:p(?:p)?\.?\s*)(?P<page_ref>\d+(?:[–-]\d+)?)  # p. 10, pp. 10-15
+        (?:p(?:p)?\.?\s*)(?P<page_ref>{_PIN_CITE_NUMBER})  # p 10, p. 10, pp 10-15
     )
     """,
     re.VERBOSE | re.IGNORECASE,

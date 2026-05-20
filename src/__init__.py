@@ -16,17 +16,19 @@ from hkeyecite.models import (
     HKNeutralCitation,
     HKReportedCitation,
     HKActionNumber,
+    expand_pin_cite,
 )
 from hkeyecite.courts import HK_COURTS
 from hkeyecite.reporters import HK_REPORTERS
 
-__version__ = "0.1.1"
+__version__ = "0.1.4"
 __all__ = [
     "get_citations",
     "HKCitation",
     "HKNeutralCitation",
     "HKReportedCitation",
     "HKActionNumber",
+    "expand_pin_cite",
     "HK_COURTS",
     "HK_REPORTERS",
 ]
